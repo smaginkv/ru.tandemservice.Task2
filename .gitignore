@@ -1,0 +1,69 @@
+﻿target/
+
+uberjar/
+
+pom.xml.tag
+
+pom.xml.releaseBackup
+
+pom.xml.versionsBackup
+
+pom.xml.next
+
+release.properties
+
+dependency-reduced-pom.xml
+
+buildNumber.properties
+
+.mvn/timing.properties
+
+.mvn/wrapper/maven-wrapper.jar
+
+**/nbproject/private/
+
+**/nbproject/Makefile-*.mk
+
+**/nbproject/Package-*.bash
+
+build/
+
+nbbuild/
+
+dist/
+
+nbdist/
+
+.nb-gradle/
+
+# JetBrains IDEs
+out/
+
+## Dir-based project format:
+.idea/
+
+## File-based project format:
+*.ipr
+*.iws
+*.iml
+
+# Eclipse IDE
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+## External tool builders
+.externalToolBuilders/
+
+## Locally stored "Eclipse launch configurations"
+*.launch
+/.project
+/.classpath
