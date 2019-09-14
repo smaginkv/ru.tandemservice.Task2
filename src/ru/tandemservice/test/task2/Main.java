@@ -1,4 +1,4 @@
-package ru.tandemservice.test.task2;
+﻿package ru.tandemservice.test.task2;
 
 import ru.tandemservice.test.task2.test.TestElementNumberAssigner;
 

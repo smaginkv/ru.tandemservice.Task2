@@ -1,4 +1,5 @@
-package ru.tandemservice.test.task2.test;
+﻿package ru.tandemservice.test.task2.test;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -13,7 +14,7 @@ import ru.tandemservice.test.task2.Task2Impl;
 public class TestElementNumberAssigner {
 	private final static Random RAND = new Random(48);
 	private static TestElementNumberAssigner instance;
-	private List<IElement> list;
+	private List<IElement> elements;
 	private String initialOrder;
 	private ElementExampleImpl.Context elementExampleImplContext;
 
@@ -28,34 +29,32 @@ public class TestElementNumberAssigner {
 	}
 
 	public void test() {
-		IElementNumberAssigner task = Task2Impl.INSTANCE;
+		// initial before use
 		elementExampleImplContext = new ElementExampleImpl.Context();
-
-		IElement[] array = getRandArray();
-
-		list = Arrays.asList(array);
-
+		elements = Arrays.asList(getRandArray());
 		initialOrder = IElementToString();
-		task.assignNumbers(list);
-		
-		checkAssigning(task);
 
+		try {
+			Task2Impl.INSTANCE.assignNumbers(elements);
+		} catch (IllegalStateException e) {
+			throw new RuntimeException(initialOrder + ". " + e.getMessage());
+		}
+
+		checkAssigning();
 	}
 
 	private String IElementToString() {
 		StringBuilder str = new StringBuilder("Initial order: ");
-		for (IElement element : list) {
-			if (list.indexOf(element) > 0) {
-				str.append(", ");
-			}
-			str.append(element.getNumber());
+		for (int i = 0; i < elements.size(); i++) {
+			str.append(i == 0 ? "" : ", ");
+			str.append(elements.get(i).getNumber());
 		}
 		return str.toString();
 	}
 
 	private IElement[] getRandArray() {
 		// from 5 to 10
-		int arrayLength = RAND.nextInt(5) + 5;
+		int arrayLength = RAND.nextInt(5) + 6;
 		IElement[] array = new IElement[arrayLength];
 		populateArray(array);
 		return array;
@@ -66,7 +65,7 @@ public class TestElementNumberAssigner {
 		for (int i = 0; i < array.length; i++) {
 			int nextNumber = 0;
 			while (true) {
-				nextNumber = RAND.nextInt(30)-10;
+				nextNumber = RAND.nextInt(30) - 10;
 				if (uniqueNumber.containsKey(nextNumber) == false) {
 					uniqueNumber.put(nextNumber, 0);
 					break;
@@ -76,21 +75,23 @@ public class TestElementNumberAssigner {
 		}
 	}
 
-	private void checkAssigning(IElementNumberAssigner task) {
+	private void checkAssigning() {
+		IElementNumberAssigner task = Task2Impl.INSTANCE;
 
+		// I don't now, can i add extra members to model entity?
 		if (task instanceof Task2Impl) {
 			int expected = ((Task2Impl) task).getExpectOperationCount();
 			int real = elementExampleImplContext.getOperationCount();
 			if (real != expected) {
-				throw new RuntimeException(
-						initialOrder + String.format(". Expected count operation %s, but real %s", expected, real));
+				String message = initialOrder + String.format(". Expected %s, but get %s opertions", expected, real);
+				throw new RuntimeException(message);
 			}
 		}
 
-		int expect = 0;
-		for (IElement element : list) {
-			if (element.getNumber() != expect++) {
-				throw new RuntimeException(initialOrder + String.format(". Wrong order: %s", IElementToString()));
+		for (int index = 0; index < elements.size(); index++) {
+			if (elements.get(index).getNumber() != index) {
+				String message = initialOrder + String.format(". Wrong order: %s", IElementToString());
+				throw new RuntimeException(message);
 			}
 		}
 	}

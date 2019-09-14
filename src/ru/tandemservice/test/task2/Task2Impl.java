@@ -28,15 +28,15 @@ public class Task2Impl implements IElementNumberAssigner {
 	public synchronized void assignNumbers(final List<IElement> elements) {
 		this.elements = elements;
 		this.expectOperationCount = 0;
-		
-		// 1 round.
+
+		// 1 stage
 		populateMapCollisions();
 
-		// 2 Round. Resolve non-transitive collisions
-		resolveNonTransitiveCollisions();
+		// 2 stage
+		resolveNonDependantCollisions();
 
-		// 3 round. Resolve transitive collisions
-		closeTransitiveCollision();
+		// 3 stage
+		resolveCyclicDependantCollisions();
 	}
 
 	public int getExpectOperationCount() {
@@ -45,11 +45,10 @@ public class Task2Impl implements IElementNumberAssigner {
 
 	private void populateMapCollisions() {
 		collisions = new ConcurrentHashMap<Integer, Integer>();
-		int index = -1;
-		for (IElement element : elements) {
-			int elementNumber = element.getNumber();
+		for (int index = 0; index < elements.size(); index++) {
+			int elementNumber = elements.get(index).getNumber();
 
-			if (elementNumber != ++index) {
+			if (elementNumber != index) {
 				expectOperationCount++;
 			}
 
@@ -59,54 +58,57 @@ public class Task2Impl implements IElementNumberAssigner {
 		}
 	}
 
-	private void resolveNonTransitiveCollisions() {
-		int index = -1;
-		for (IElement element : elements) {
-			if (collisions.containsKey(++index) == false && element.getNumber() != index) {
-				// To free number in index freeNumber recursively
-				processFreeNumber(index);
+	private void resolveNonDependantCollisions() {
+		for (int index = 0; index < elements.size(); index++) {
+			if (collisions.containsKey(index) == false && elements.get(index).getNumber() != index) {
+				freeNumber(index);
 			}
 		}
 	}
 
-	private void processFreeNumber(int freeIndex) {
+	private void freeNumber(int freeIndex) {
 		IElement element = elements.get(freeIndex);
 		int freeNumber = element.getNumber();// 0
 
 		element.setupNumber(freeIndex);
 		if (collisions.remove(freeNumber) != null) {
-			processFreeNumber(freeNumber);
+			freeNumber(freeNumber);
 		}
 	}
 
-	private void resolveResolveCollisionsOnStep(int key) {
-		collisions.remove(key);
-		int checkedValue = elements.get(key).getNumber();
-
-		elements.get(key).setupNumber(key);
-
-		if (checkedValue > 0) {
-			resolveResolveCollisionsOnStep(checkedValue);
-		}
-	}
-
-	private void closeTransitiveCollision() {
-
-		int step = 0;
-
+	private void resolveCyclicDependantCollisions() {
 		while (true) {
 			Iterator<Entry<Integer, Integer>> collisionsIterator = collisions.entrySet().iterator();
-
 			if (!collisionsIterator.hasNext()) {
 				break;
 			}
-
 			Entry<Integer, Integer> checkedEntry = collisionsIterator.next();
-			int indexCurrentElement = checkedEntry.getValue();
-			elements.get(indexCurrentElement).setupNumber(++step * -1);
-			resolveResolveCollisionsOnStep(checkedEntry.getKey());
+
+			// in collisions key - number, value - position
+			int currentPosition = checkedEntry.getValue();
+
+			// we have to break cyclic dependence
+			// at this stage we cannot have elements with a negative number, it's difficult
+			// to imagine an array with negative index!
+			elements.get(currentPosition).setupNumber(-1);
+
+			// at now, we have to recursively bypass whole collision and set the
+			// corresponding number
+			resolveNextCollisionElement(checkedEntry.getKey());
 
 			expectOperationCount++;
+		}
+	}
+
+	private void resolveNextCollisionElement(int currentPosition) {
+		collisions.remove(currentPosition);
+		int currentNumber = elements.get(currentPosition).getNumber();
+
+		elements.get(currentPosition).setupNumber(currentPosition);
+
+		// we have reached the end of collision
+		if (currentNumber > 0) {
+			resolveNextCollisionElement(currentNumber);
 		}
 	}
 }
