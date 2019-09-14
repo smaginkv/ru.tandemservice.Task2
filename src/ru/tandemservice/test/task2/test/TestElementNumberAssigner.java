@@ -9,13 +9,12 @@ import ru.tandemservice.test.task2.ElementExampleImpl;
 import ru.tandemservice.test.task2.IElement;
 import ru.tandemservice.test.task2.IElementNumberAssigner;
 import ru.tandemservice.test.task2.Task2Impl;
-import ru.tandemservice.test.task2.exception.AssignerException;
 
 public class TestElementNumberAssigner {
 	private final static Random RAND = new Random(48);
 	private static TestElementNumberAssigner instance;
 	private List<IElement> list;
-	private String caution;
+	private String initialOrder;
 	private ElementExampleImpl.Context elementExampleImplContext;
 
 	private TestElementNumberAssigner() {
@@ -28,7 +27,7 @@ public class TestElementNumberAssigner {
 		return instance;
 	}
 
-	public void test() throws AssignerException {
+	public void test() {
 		IElementNumberAssigner task = Task2Impl.INSTANCE;
 		elementExampleImplContext = new ElementExampleImpl.Context();
 
@@ -36,29 +35,15 @@ public class TestElementNumberAssigner {
 
 		list = Arrays.asList(array);
 
-		caution = IElementToString();
-
-		try {
-			task.assignNumbers(list);
-		} catch (Exception e) {
-			throw new AssignerException(e.getMessage());
-		}
-
-		checkAssigning();
-
-		if (task instanceof Task2Impl) {
-			int expected = ((Task2Impl) task).getExpectOperationCount();
-			int real = elementExampleImplContext.getOperationCount();
-			if (real != expected) {
-				throw new AssignerException(String.format("Expected count operation %s, but real %s", expected, real));
-			}
-		}
+		initialOrder = IElementToString();
+		task.assignNumbers(list);
+		
+		checkAssigning(task);
 
 	}
 
 	private String IElementToString() {
-		StringBuilder str = new StringBuilder();
-		str.append("(").append(elementExampleImplContext.getOperationCount()).append(")");
+		StringBuilder str = new StringBuilder("Initial order: ");
 		for (IElement element : list) {
 			if (list.indexOf(element) > 0) {
 				str.append(", ");
@@ -91,11 +76,21 @@ public class TestElementNumberAssigner {
 		}
 	}
 
-	private void checkAssigning() throws AssignerException {
+	private void checkAssigning(IElementNumberAssigner task) {
+
+		if (task instanceof Task2Impl) {
+			int expected = ((Task2Impl) task).getExpectOperationCount();
+			int real = elementExampleImplContext.getOperationCount();
+			if (real != expected) {
+				throw new RuntimeException(
+						initialOrder + String.format(". Expected count operation %s, but real %s", expected, real));
+			}
+		}
+
 		int expect = 0;
 		for (IElement element : list) {
 			if (element.getNumber() != expect++) {
-				throw new AssignerException(caution);
+				throw new RuntimeException(initialOrder + String.format(". Wrong order: %s", IElementToString()));
 			}
 		}
 	}

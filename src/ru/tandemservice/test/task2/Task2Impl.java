@@ -27,6 +27,8 @@ public class Task2Impl implements IElementNumberAssigner {
 	@Override
 	public synchronized void assignNumbers(final List<IElement> elements) {
 		this.elements = elements;
+		this.expectOperationCount = 0;
+		
 		// 1 round.
 		populateMapCollisions();
 
