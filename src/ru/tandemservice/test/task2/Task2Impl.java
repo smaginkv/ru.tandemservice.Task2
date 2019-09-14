@@ -19,96 +19,108 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Task2Impl implements IElementNumberAssigner {
 
-	public static final IElementNumberAssigner INSTANCE = new Task2Impl();
-	private List<IElement> elements;
-	private Map<Integer, Integer> collisions;
-	private int expectOperationCount = 0;
+    public static final IElementNumberAssigner INSTANCE = new Task2Impl();
+    private List<IElement> elements;
+    private Map<Integer, Integer> collisions;
+    private int expectOperationCount = 0;
 
-	@Override
-	public synchronized void assignNumbers(final List<IElement> elements) {
-		this.elements = elements;
-		this.expectOperationCount = 0;
+    /**
+     * Assign number to elements according to their order in the collection 
+     */
+    @Override
+    public synchronized void assignNumbers(final List<IElement> elements) {
+        this.elements = elements;
+        this.expectOperationCount = 0;
 
-		// 1 stage
-		populateMapCollisions();
+        // 1 stage
+        populateMapCollisions();
 
-		// 2 stage
-		resolveNonDependantCollisions();
+        // 2 stage
+        resolveSimpleCollisions();
 
-		// 3 stage
-		resolveCyclicDependantCollisions();
-	}
+        // 3 stage
+        resolveCyclicDependantCollisions();
+    }
 
-	public int getExpectOperationCount() {
-		return expectOperationCount;
-	}
+    /**
+     * @return estimated number of setupNumber operations
+     */
+    public int getExpectOperationCount() {
+        return expectOperationCount;
+    }
 
-	private void populateMapCollisions() {
-		collisions = new ConcurrentHashMap<Integer, Integer>();
-		for (int index = 0; index < elements.size(); index++) {
-			int elementNumber = elements.get(index).getNumber();
+    /**
+     * Populate map of collisions. 
+     * Collision - duplication of numbers that occurs when an element is assigned a number in order
+     */
+    private void populateMapCollisions() {
+        collisions = new ConcurrentHashMap<Integer, Integer>();
+        for (int index = 0; index < elements.size(); index++) {
+            int elementNumber = elements.get(index).getNumber();
 
-			if (elementNumber != index) {
-				expectOperationCount++;
-			}
+            if (elementNumber != index) {
+                expectOperationCount++;
+            }
 
-			if (elementNumber != index && elementNumber >= 0 && elementNumber < elements.size()) {
-				collisions.put(elementNumber, index);
-			}
-		}
-	}
+            if (elementNumber != index && elementNumber >= 0 && elementNumber < elements.size()) {
+                collisions.put(elementNumber, index);
+            }
+        }
+    }
 
-	private void resolveNonDependantCollisions() {
-		for (int index = 0; index < elements.size(); index++) {
-			if (collisions.containsKey(index) == false && elements.get(index).getNumber() != index) {
-				freeNumber(index);
-			}
-		}
-	}
+    /**
+     * Simple collision - to resolve that you havn't use extra setupNumber operations {0,17,1}->{0,17,2}->{0,1,2} 
+     */
+    private void resolveSimpleCollisions() {
+        for (int index = 0; index < elements.size(); index++) {
+            if (collisions.containsKey(index) == false && elements.get(index).getNumber() != index) {
+                releaseNumberByIndex(index);
+            }
+        }
+    }
 
-	private void freeNumber(int freeIndex) {
-		IElement element = elements.get(freeIndex);
-		int freeNumber = element.getNumber();// 0
+    /**
+     * Releasing the current element number will resolve a simple collision for another element.
+     * @param nextIndex - current number, maybe index of next simple collision
+     */
+    private void releaseNumberByIndex(final int nextIndex) {
+        IElement element = elements.get(nextIndex);
+        int nextNumber = element.getNumber();
 
-		element.setupNumber(freeIndex);
-		if (collisions.remove(freeNumber) != null) {
-			freeNumber(freeNumber);
-		}
-	}
+        element.setupNumber(nextIndex);
+        if (collisions.remove(nextNumber) != null) {
+            releaseNumberByIndex(nextNumber);
+        }
+    }
 
-	private void resolveCyclicDependantCollisions() {
-		while (true) {
-			Iterator<Entry<Integer, Integer>> collisionsIterator = collisions.entrySet().iterator();
-			if (!collisionsIterator.hasNext()) {
-				break;
-			}
-			Entry<Integer, Integer> checkedEntry = collisionsIterator.next();
+    /**
+     * Cyclic dependant - to resolve that you have to use extra setupNumber operations
+     * {1,2,0}-> extra operation {-1,2,0}->{-1,1,0}->{-1,1,2}->{0,1,2}
+     */
+    private void resolveCyclicDependantCollisions() {
+        while (true) {
+            Iterator<Entry<Integer, Integer>> collisionsIterator = collisions.entrySet().iterator();
+            if (!collisionsIterator.hasNext()) {
+                break;
+            }
+            Entry<Integer, Integer> checkedEntry = collisionsIterator.next();
 
-			// in collisions key - number, value - position
-			int currentPosition = checkedEntry.getValue();
+            // in collisions key - number, value - position
+            int currentPosition = checkedEntry.getValue();
 
-			// we have to break cyclic dependence
-			// at this stage we cannot have elements with a negative number, it's difficult
-			// to imagine an array with negative index!
-			elements.get(currentPosition).setupNumber(-1);
+            // we have to break cyclic dependence, release first element in cyclic dependency
+            // at this stage we cannot have elements with a negative number, it's difficult
+            // to imagine an array with negative index!
+            elements.get(currentPosition).setupNumber(-1);
 
-			// at now, we have to recursively bypass whole collision and set the
-			// corresponding number
-			resolveNextCollisionElement(checkedEntry.getKey());
+            // at now, we have to recursively bypass whole collision and set the
+            // corresponding number
+            releaseNumberByIndex(checkedEntry.getKey());
+            
+            //Release first element in cyclic dependency 
+            collisions.remove(checkedEntry.getKey());
 
-			expectOperationCount++;
-		}
-	}
-
-	private void resolveNextCollisionElement(int currentPosition) {
-		collisions.remove(currentPosition);
-		int currentNumber = elements.get(currentPosition).getNumber();
-
-		elements.get(currentPosition).setupNumber(currentPosition);
-
-		// we have reached the end of collision
-		if (currentNumber > 0) {
-			resolveNextCollisionElement(currentNumber);
-		}
-	}
+            expectOperationCount++;
+        }
+    }
 }
