@@ -1,4 +1,4 @@
-﻿package ru.tandemservice.test.task2;
+package ru.tandemservice.test.task2;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -6,7 +6,12 @@ import java.util.Map;
 /**
  * одна из возможных реализаций {@link IElement}
  */
-public final class ElementExampleImpl implements IElement {
+public final class ElementExampleImpl implements IElement, Comparable<ElementExampleImpl> {
+
+    @Override
+    public int compareTo(ElementExampleImpl o) {
+        return number.compareTo(o.getNumber());
+    }
 
     public static class Context {
 
