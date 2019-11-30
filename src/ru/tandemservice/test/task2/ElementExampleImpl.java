@@ -5,6 +5,8 @@ import java.util.Map;
 
 /**
  * одна из возможных реализаций {@link IElement}
+ * Добавил реализацию интерфейса Comparable для того чтобы коллекцию можно было отсортировать стандартным способом
+ * @author Smagin.K.V
  */
 public final class ElementExampleImpl implements IElement, Comparable<ElementExampleImpl> {
 

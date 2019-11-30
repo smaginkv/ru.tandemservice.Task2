@@ -1,4 +1,5 @@
 ﻿## Task text
+
 The method sets numbers <code>IElement#setupNumber(int)</code> for elements in the collection in the order of the elements. Initially, the collection does not contain elements whose numbers are repeated. The following conditions are provided:
 
 • the method only works with existing elements (does not create new ones),
@@ -13,9 +14,9 @@ The method sets numbers <code>IElement#setupNumber(int)</code> for elements in t
 Run the command line, go to the project folder and create bin folder
 Compile..
 
-    javac -sourcepath src -d bin src/ru/tandemservice/test/task2/Main.java
+    javac -sourcepath src -d bin src/ru/tandemservice/test/task2/testing/Task2ImplTest.java
 
 Run bytecode
 
-    java -cp bin ru.tandemservice.test.task2.Main
+    java -cp bin ru.tandemservice.test.task2.testing.Task2ImplTest
         
