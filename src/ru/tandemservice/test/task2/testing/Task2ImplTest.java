@@ -1,15 +1,16 @@
 package ru.tandemservice.test.task2.testing;
 
-import ru.tandemservice.test.task2.application.Context;
 import ru.tandemservice.test.task2.ElementExampleImpl;
 import ru.tandemservice.test.task2.IElement;
 import ru.tandemservice.test.task2.Task2Impl;
+import ru.tandemservice.test.task2.application.Context;
 
 import java.util.*;
 
 /**
  * Класс для реализации тестирования перенумерации
  * Насколько я помню Junit нельзя использовать в теством задании, пришлось топорно делать
+ *
  * @author Smagin.K.V
  */
 public class Task2ImplTest {
@@ -21,18 +22,68 @@ public class Task2ImplTest {
     private long expectOperationCount;
 
     /**
+     * Генерирует новый контекст для следующего теста
+     * @return - возвращаемый контекст
+     */
+    public ElementExampleImpl.Context getNewElementExampleImplContext() {
+        elementExampleImplContext = new ElementExampleImpl.Context();
+        return elementExampleImplContext;
+    }
+
+    /**
      * Входная точка для запуска теста
-     * @param args
+     *
+     * @param args - аргументы командной строки
      */
     public static void main(String[] args) {
+        try {
+            shouldCorrectWhenRandomNumber();
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+
+        try {
+            shouldCorrectWhenCornerCase();
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    /**
+     * Тест на генерацию рандомных списков
+     */
+    private static void shouldCorrectWhenRandomNumber() {
         for (int index = 0; index < 1_000_000; index++) {
             try {
-                Context.getTask2ImplTestInstance().test();
+                Task2ImplTest task2ImplTest = Context.getTask2ImplTestInstance();
+                // Выбираем размерность массива случайным образом от 5 до 10
+                task2ImplTest.setupTest(RAND.nextInt(5) + 6);
+                task2ImplTest.test();
             } catch (RuntimeException e) {
                 throw new RuntimeException(String.format("Step(%s). ", index) + e.getMessage());
             }
         }
-        System.out.println("test operations finished");
+        System.out.println("random test finished successful");
+    }
+
+    /**
+     * Тест на генерацию предопределенного списка с "/граничными/" значениями
+     */
+    private static void shouldCorrectWhenCornerCase() {
+
+        Task2ImplTest task2ImplTest = Context.getTask2ImplTestInstance();
+        ElementExampleImpl.Context elementExampleImplContext = task2ImplTest.getNewElementExampleImplContext();
+        int number = Integer.MIN_VALUE;
+        IElement[] testElement = new IElement[5];
+
+        for (int i = 0; i < testElement.length; i++) {
+            testElement[i] = new ElementExampleImpl(elementExampleImplContext, number++);
+        }
+
+        task2ImplTest.setupTest(Arrays.asList(testElement));
+        task2ImplTest.test();
+
+        System.out.println("corner test finished successful");
     }
 
     @Override
@@ -49,28 +100,32 @@ public class Task2ImplTest {
      * Запуск теста
      */
     private void test() {
-        Context.getTask2ImplTestInstance().setupTest();
-
         try {
             Task2Impl.INSTANCE.assignNumbers(elements);
         } catch (IllegalStateException e) {
             throw new RuntimeException(initialOrder + ". " + e.getMessage());
         }
-
         checkAssigning();
     }
 
     /**
-     * Настройка теста
+     * Настройка теста с заполнением произвольными числами
+     *
+     * @param arrayLength - размер генерируемого списка элементов
      */
-    private void setupTest() {
+    private void setupTest(int arrayLength) {
         initialOrder = "";
-        elementExampleImplContext = new ElementExampleImpl.Context();
+        setupTest(populateArray(arrayLength));
 
-        // Выбираем размерность массива случайным образом от 5 до 10
-        int arrayLength = RAND.nextInt(5) + 6;
+    }
 
-        elements = populateArray(arrayLength);
+    /**
+     * Настройка теста с предопределенными элементами
+     *
+     * @param elements                  - список элементов который надо протестировать
+     */
+    private void setupTest(List<IElement> elements) {
+        this.elements = elements;
 
         //Запоминаем как "выглядел" массив, чтобы по логам понять что пошло не так
         initialOrder = toString();
@@ -83,7 +138,7 @@ public class Task2ImplTest {
      */
     private void calculateExpectOperationCount() {
         //Получим мапу замен - каждая замена = 1 операция
-        Map<IElement, IElement> mapReplacement = Context.getMapReplacement().get(elements);
+        Map<IElement, IElement> mapReplacement = Context.getStructureConverter().getReplacementMap(elements);
         expectOperationCount = mapReplacement.size();
 
         //Получим количество цепочек замен, каждая лишняя цепочка +1 операция записи
@@ -96,8 +151,7 @@ public class Task2ImplTest {
     }
 
     /**
-     *
-     * @param map - мапа которую надо пройти на предмет наличия циклических ссылок
+     * @param map     - мапа которую надо пройти на предмет наличия циклических ссылок
      * @param element - элемент с которого надо начать "распутывать" цепочку
      */
     private void removeRecursively(Map<IElement, IElement> map, IElement element) {
@@ -109,11 +163,13 @@ public class Task2ImplTest {
 
     /**
      * Наполняем массив случайными номерами
+     *
      * @param arrayLength - размер List'a номеров
      * @return - unmodifiable list со случайными элементами
      */
     private List<IElement> populateArray(int arrayLength) {
         IElement[] array = new IElement[arrayLength];
+        elementExampleImplContext = getNewElementExampleImplContext();
         Set<Integer> uniqueNumber = new HashSet<>();
 
         for (int i = 0; i < arrayLength; i++) {
@@ -125,6 +181,7 @@ public class Task2ImplTest {
 
     /**
      * Генерируем произвольный номер, каждый номер уникален
+     *
      * @param uniqueNumber - cтруктура с номерами которые уже повторялись
      * @return - новый номер которого не было в структуре с уникальными номерами
      */

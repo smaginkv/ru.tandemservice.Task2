@@ -1,7 +1,6 @@
 package ru.tandemservice.test.task2;
 
 import ru.tandemservice.test.task2.application.Context;
-import ru.tandemservice.test.task2.service.PerformAndSet;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +13,7 @@ import java.util.Map;
  * с учетом скорости выполнения операции присвоения номера:
  * большим плюсом (хотя это и не обязательно) будет оценка числа операций, доказательство оптимальности
  * или указание области, в которой алгоритм будет оптимальным.</p>
+ *
  * @author Smagin.K.V
  */
 public class Task2Impl implements IElementNumberAssigner {
@@ -24,11 +24,11 @@ public class Task2Impl implements IElementNumberAssigner {
     private List<IElement> elements;
     private Integer temporaryNumber;
 
-    public void setTemporaryNumber(Integer temporaryNumber) {
-        this.temporaryNumber = temporaryNumber;
-    }
-
     @Override
+    /**
+     * Перенумерация элементов списка
+     * @param elements - элементы, которым нужно выставить номера
+     */
     public void assignNumbers(final List<IElement> elements) {
         // напишите здесь свою реализацию. Мы ждем от вас хорошо структурированного, документированного и понятного кода, работающего за разумное время.
         initialize(elements);
@@ -36,42 +36,45 @@ public class Task2Impl implements IElementNumberAssigner {
     }
 
     /**
-     * Наолняет внутренние структуры элементами, для удобства перенумерации
+     * Наполняет внутренние структуры элементами, для удобства перенумерации
      *
      * @param elements элементы, которым нужно выставить номера
      */
     private void initialize(final List<IElement> elements) {
 
         this.elements = elements;
-        temporaryNumber = null;
+        IElement[] sortedElements = Context.getStructureConverter().getSortedArray(elements);
+        replacementMap = Context.getStructureConverter().initReplacementMap(elements, sortedElements);
+        temporaryNumber = calculateTemporaryNumber(sortedElements);
+    }
 
-        //Лямбды исключительно ради фана, с нового года перехожу на проект java8, потихоньку готовлюсь
-        PerformAndSet<IElement[], Object> setTemporaryNumber = (sortedElements, caller) -> {
-            Integer temporaryNumber = null;
-            for (int i = 0; i < sortedElements.length; i++) {
-                if (i == 0) {
-                    if (sortedElements[i].getNumber() != Integer.MIN_VALUE) {
-                        temporaryNumber = Integer.MIN_VALUE;
-                        break;
-                    }
-                } else {
-                    if (sortedElements[i].getNumber() != sortedElements[i - 1].getNumber() + 1) {
-                        temporaryNumber = sortedElements[i - 1].getNumber() + 1;
-                    }
-                }
-            }
-            ((Task2Impl) caller).setTemporaryNumber(temporaryNumber);
-        };
-
-        //Получаем мапу, в которой указано какой элемент на какой будет заменяться
-        //temporaryNumber - Это номер который нам придется испльзовать чтобы не задвоились номера
-        //3:2:1->4:2:1->4:2:3->1:2:3 в данном примере временный номер = 4
-        replacementMap = Context.getMapReplacement().get(elements, this, setTemporaryNumber);
+    /**
+     * Вычисление номера, который не встречается в заданном списке элементов ("временный номер")
+     * Нужен для промежуточной вставки которая не вызывает дублирования номеров
+     *
+     * @param sortedElements - список из отсортированных элементов
+     * @return - рассчетный номер который не встречается списке элементов
+     */
+    private Integer calculateTemporaryNumber(IElement[] sortedElements) {
+        Integer tempNumber = null;
+        for (int i = 0; i < sortedElements.length && tempNumber == null; i++) {
+            if (i == 0 && sortedElements[i].getNumber() != Integer.MIN_VALUE)
+                tempNumber = Integer.MIN_VALUE;
+            else if (i > 0 && sortedElements[i].getNumber() != sortedElements[i - 1].getNumber() + 1)
+                tempNumber = sortedElements[i - 1].getNumber() + 1;
+        }
+        if (tempNumber == null) {
+            if (sortedElements.length > 0 && sortedElements[sortedElements.length - 1].getNumber() != Integer.MAX_VALUE)
+                tempNumber = sortedElements[sortedElements.length - 1].getNumber() + 1;
+            else
+                throw new RuntimeException("Не удалось вычислить \"свободный\" номер для промежуточной вставки");
+        }
+        return tempNumber;
     }
 
     /**
      * Обходим массив, проверяем, находится ли элемент на правильном месте
-     * Запуск обхода цепочки приводит к лишней записи (временный номер)
+     * Запуск обхода цепочки приводит к лишней записи из за "временного номера"
      */
     private void exchangeElements() {
         elements.forEach(element -> {
@@ -83,8 +86,9 @@ public class Task2Impl implements IElementNumberAssigner {
 
     /**
      * Рекурсивно вызываем замену номера, до тех пор пока не пройдем всю цепочку
+     *
      * @param collisionNumber - номер который стоял не на своем месте
-     * @param element - новое место для номера который стоял не на своем месте
+     * @param element         - новое место для номера который стоял не на своем месте
      */
     private void exchangeElement(int collisionNumber, IElement element) {
         if (element == null) {
